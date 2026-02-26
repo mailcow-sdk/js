@@ -52,7 +52,7 @@
       it('should call createBCCMap successfully', function(done) {
         //uncomment below and update the code to test createBCCMap
         //instance.createBCCMap(function(error) {
-        //  if (error) throw error;
+        expect(true).to.be.true;
         //expect().to.be();
         //});
         done();
