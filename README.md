@@ -4,6 +4,13 @@
 - GitHub Actions workflow: `.github/workflows/ci.yml`
 - Runs on pushes and pull requests targeting `main`
 
+## Testing
+
+```bash
+npm install
+npm test
+```
+
 MailcowSdkJs - JavaScript client for mailcow-sdk-js
 mailcow is complete e-mailing solution with advanced antispam, antivirus, nice UI and API.
 
@@ -321,4 +328,3 @@ Authentication schemes defined for the API:
 - **Type**: API key
 - **API key parameter name**: X-API-Key
 - **Location**: HTTP header
-

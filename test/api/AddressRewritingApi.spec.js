@@ -25,88 +25,132 @@
 }(this, function(expect, MailcowSdkJs) {
   'use strict';
 
-  var instance;
-
-  beforeEach(function() {
-    instance = new MailcowSdkJs.AddressRewritingApi();
-  });
-
-  var getProperty = function(object, getter, property) {
-    // Use getter method if present; otherwise, get the property directly.
-    if (typeof object[getter] === 'function')
-      return object[getter]();
-    else
-      return object[property];
-  }
-
-  var setProperty = function(object, setter, property, value) {
-    // Use setter method if present; otherwise, set the property directly.
-    if (typeof object[setter] === 'function')
-      object[setter](value);
-    else
-      object[property] = value;
-  }
+  var sinon = require('sinon');
+  var createBccSuccessFixture = require('./fixtures_create_bcc_success.json');
+  var createBccErrorFixture = require('./fixtures_create_bcc_401.json');
 
   describe('AddressRewritingApi', function() {
-    describe('createBCCMap', function() {
-      it('should call createBCCMap successfully', function(done) {
-        //uncomment below and update the code to test createBCCMap
-        //instance.createBCCMap(function(error) {
-        expect(true).to.be.true;
-        //expect().to.be();
-        //});
+    var apiClient;
+    var api;
+
+    beforeEach(function() {
+      apiClient = new MailcowSdkJs.ApiClient('https://mailcow.example.test');
+      api = new MailcowSdkJs.AddressRewritingApi(apiClient);
+    });
+
+    afterEach(function() {
+      sinon.restore();
+    });
+
+    it('createBCCMap builds request with method/path/body/auth and maps response payload', function(done) {
+      sinon.stub(apiClient, 'callApi').callsFake(function(path, method, pathParams, queryParams, headerParams, formParams, postBody, authNames, contentTypes, accepts, returnType, apiBasePath, callback) {
+        expect(path).to.be('/api/v1/add/bcc');
+        expect(method).to.be('POST');
+        expect(pathParams).to.eql({});
+        expect(queryParams).to.eql({});
+        expect(headerParams).to.eql({});
+        expect(formParams).to.eql({});
+        expect(authNames).to.eql(['ApiKeyAuth']);
+        expect(contentTypes).to.eql(['application/json']);
+        expect(accepts).to.eql(['application/json']);
+        expect(postBody).to.eql({
+          active: 1,
+          bcc_dest: 'bcc@example.test',
+          local_dest: 'sender@example.test',
+          type: 'sender'
+        });
+
+        var model = returnType.constructFromObject(createBccSuccessFixture);
+        callback(null, model, { status: 200, headers: {} });
+      });
+
+      api.createBCCMap({
+        createBCCMapRequest: {
+          active: 1,
+          bcc_dest: 'bcc@example.test',
+          local_dest: 'sender@example.test',
+          type: 'sender'
+        }
+      }, function(error, data, response) {
+        expect(error).to.be(null);
+        expect(response.status).to.be(200);
+        expect(data.type).to.be('success');
+        expect(data.msg).to.eql(['created']);
+        expect(data.log).to.eql(['bcc-map']);
         done();
       });
     });
-    describe('createRecipientMap', function() {
-      it('should call createRecipientMap successfully', function(done) {
-        //uncomment below and update the code to test createRecipientMap
-        //instance.createRecipientMap(function(error) {
-        //  if (error) throw error;
-        //expect().to.be();
-        //});
+
+    it('getBCCMap passes path/header params and preserves raw id for URL encoding downstream', function(done) {
+      sinon.stub(apiClient, 'callApi').callsFake(function(path, method, pathParams, queryParams, headerParams, formParams, postBody, authNames, contentTypes, accepts, returnType, apiBasePath, callback) {
+        expect(path).to.be('/api/v1/get/bcc/{id}');
+        expect(method).to.be('GET');
+        expect(pathParams).to.eql({ id: 'domain/test id' });
+        expect(headerParams).to.eql({ 'X-API-Key': 'explicit-header-key' });
+        expect(queryParams).to.eql({});
+        expect(postBody).to.be(null);
+        expect(authNames).to.eql(['ApiKeyAuth']);
+        expect(contentTypes).to.eql([]);
+        expect(accepts).to.eql(['application/json']);
+        callback(null, null, { status: 200, headers: {} });
+      });
+
+      api.getBCCMap('domain/test id', { xAPIKey: 'explicit-header-key' }, function(error, data) {
+        expect(error).to.be(null);
+        expect(data).to.be(null);
         done();
       });
     });
-    describe('deleteBCCMap', function() {
-      it('should call deleteBCCMap successfully', function(done) {
-        //uncomment below and update the code to test deleteBCCMap
-        //instance.deleteBCCMap(function(error) {
-        //  if (error) throw error;
-        //expect().to.be();
-        //});
+
+    it('maps transport errors to callback with status, body, and request-id metadata', function(done) {
+      sinon.stub(apiClient, 'callApi').callsFake(function(path, method, pathParams, queryParams, headerParams, formParams, postBody, authNames, contentTypes, accepts, returnType, apiBasePath, callback) {
+        callback({
+          status: 401,
+          method: method,
+          url: path,
+          response: {
+            body: createBccErrorFixture,
+            headers: {
+              'x-request-id': 'req-401'
+            }
+          }
+        }, null, { status: 401, headers: { 'x-request-id': 'req-401' } });
+      });
+
+      api.createBCCMap({
+        createBCCMapRequest: { type: 'sender' }
+      }, function(error, data, response) {
+        expect(data).to.be(null);
+        expect(response.status).to.be(401);
+        expect(error.status).to.be(401);
+        expect(error.method).to.be('POST');
+        expect(error.url).to.be('/api/v1/add/bcc');
+        expect(error.response.body.type).to.be('danger');
+        expect(error.response.headers['x-request-id']).to.be('req-401');
         done();
       });
     });
-    describe('deleteRecipientMap', function() {
-      it('should call deleteRecipientMap successfully', function(done) {
-        //uncomment below and update the code to test deleteRecipientMap
-        //instance.deleteRecipientMap(function(error) {
-        //  if (error) throw error;
-        //expect().to.be();
-        //});
-        done();
-      });
+
+    it('ApiClient injects API key auth header and encodes path params', function() {
+      apiClient.authentications.ApiKeyAuth.apiKey = 'config-api-key';
+      var request = {
+        set: sinon.spy(),
+        query: sinon.spy()
+      };
+
+      apiClient.applyAuthToRequest(request, ['ApiKeyAuth']);
+      expect(request.set.calledOnce).to.be(true);
+      expect(request.set.firstCall.args[0]).to.eql({ 'X-API-Key': 'config-api-key' });
+
+      var built = apiClient.buildUrl('/api/v1/get/bcc/{id}', { id: 'domain/test id' });
+      expect(built).to.be('https://mailcow.example.test/api/v1/get/bcc/domain%2Ftest%20id');
     });
-    describe('getBCCMap', function() {
-      it('should call getBCCMap successfully', function(done) {
-        //uncomment below and update the code to test getBCCMap
-        //instance.getBCCMap(function(error) {
-        //  if (error) throw error;
-        //expect().to.be();
-        //});
-        done();
-      });
-    });
-    describe('getRecipientMap', function() {
-      it('should call getRecipientMap successfully', function(done) {
-        //uncomment below and update the code to test getRecipientMap
-        //instance.getRecipientMap(function(error) {
-        //  if (error) throw error;
-        //expect().to.be();
-        //});
-        done();
-      });
+
+    it('ApiClient.deserialize maps JSON arrays and string fields into model shape', function() {
+      var model = apiClient.deserialize({ body: createBccSuccessFixture }, MailcowSdkJs.CreateAlias200Response);
+      expect(model.type).to.be('success');
+      expect(model.msg).to.eql(['created']);
+      expect(model.log).to.eql(['bcc-map']);
     });
   });
 
